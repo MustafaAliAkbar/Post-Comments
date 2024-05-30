@@ -1,118 +1,204 @@
-import Image from "next/image";
-import { Inter } from "next/font/google";
+// src/pages/index.js
+import { Box, Button, Input, FormControl, FormLabel, Select, Alert, AlertIcon, Table, Thead, Tbody, Tr, Th, Td, Tabs, TabList, TabPanels, Tab, TabPanel, useToast, Grid, GridItem, Link, Spinner, Center } from "@chakra-ui/react";
+import { useEffect, useState } from 'react';
+import { FaPlus, FaUser, FaList, FaEye } from 'react-icons/fa';
+import api from '../utils/axios';
+import NextLink from 'next/link';
 
-const inter = Inter({ subsets: ["latin"] });
+const Home = () => {
+  const [users, setUsers] = useState([]);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [gender, setGender] = useState('');
+  const [status, setStatus] = useState('');
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreatingUser, setIsCreatingUser] = useState(false); // State to manage loading status for creating user
+  const toast = useToast();
 
-export default function Home() {
+  useEffect(() => {
+    api.get('/users')
+      .then(response => {
+        setUsers(response.data);
+        setIsLoading(false);
+      })
+      .catch(error => {
+        console.error('Error fetching users:', error);
+        setIsLoading(false);
+      });
+  }, []);
+
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(String(email).toLowerCase());
+  };
+
+  const createUser = () => {
+    if (!name || !email || !gender || !status) {
+      toast({
+        title: "Validation Error",
+        description: "All fields are mandatory. Please fill in all the fields.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "top",
+      });
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+        position: "top",
+      });
+      return;
+    }
+
+    const userData = { name, email, gender, status };
+    setIsCreatingUser(true); // Set loading state to true
+
+    api.post('/users', userData)
+      .then(response => {
+        setUsers([response.data, ...users]);
+        setName('');
+        setEmail('');
+        setGender('');
+        setStatus('');
+        setError('');
+        setIsCreatingUser(false); // Set loading state to false
+        toast({
+          title: "User created.",
+          description: "The user has been created successfully.",
+          status: "success",
+          duration: 5000,
+          isClosable: true,
+          position: "top",
+        });
+      })
+      .catch(error => {
+        console.error('Error creating user:', error);
+        setError(error.response?.data?.message || 'An error occurred');
+        setIsCreatingUser(false); // Set loading state to false
+      });
+  };
+
   return (
-    <main
-      className={`flex min-h-screen flex-col items-center justify-between p-24 ${inter.className}`}
-    >
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/pages/index.js</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
+    <Box p={8} maxW="1200px" mx="auto">
+      {error && (
+        <Alert status="error" mb={4}>
+          <AlertIcon />
+          {error}
+        </Alert>
+      )}
+      <Tabs variant="soft-rounded" colorScheme="teal" defaultIndex={0}>
+        <TabList mb={4}>
+          <Tab>
+            <FaList style={{ marginRight: 8 }} /> User List
+          </Tab>
+          <Tab>
+            <FaUser style={{ marginRight: 8 }} /> Create User
+          </Tab>
+        </TabList>
+        <TabPanels>
 
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-full sm:before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full sm:after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700/10 after:dark:from-sky-900 after:dark:via-[#0141ff]/40 before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
+          <TabPanel>
+            <Box p={4} borderWidth={1} borderRadius="lg" boxShadow="lg">
+              {isLoading ? (
+                <Center>
+                  <Spinner size="xl" color="teal.500" />
+                </Center>
+              ) : (
+                <Table variant="striped" colorScheme="teal">
+                  <Thead>
+                    <Tr >
+                      <Th>Name</Th>
+                      <Th>Email</Th>
+                      <Th>Gender</Th>
+                      <Th>Status</Th>
+                      <Th>Posts</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {users.map(user => (
+                      <Tr key={user.id}>
+                        <Td>{user.name}</Td>
+                        <Td>{user.email}</Td>
+                        <Td>{user.gender}</Td>
+                        <Td>{user.status}</Td>
+                        <Td>
+                          <NextLink href={`/user/${user.id}`} passHref>
+                            <Link colorScheme="#808080">
+                              <Button leftIcon={<FaEye />} colorScheme="gray" size="sm" borderRadius="lg" boxShadow="lg">
+                                Posts
+                              </Button>
+                            </Link>
+                          </NextLink>
+                        </Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              )}
+            </Box>
+          </TabPanel>
 
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
+          <TabPanel>
+            <Box p={4} borderWidth={1} borderRadius="lg" boxShadow="lg">
+              <Box display="flex" alignItems="center" mb={4}>
+                <FaUser size={24} />
+                <FormLabel ml={2} fontSize="2xl" fontWeight="bold">
+                  Create New User
+                </FormLabel>
+              </Box>
+              <FormControl id="name" mb={4} isRequired>
+                <FormLabel>Name</FormLabel>
+                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Enter name" />
+              </FormControl>
+              <FormControl id="email" mb={4} isRequired>
+                <FormLabel>Email</FormLabel>
+                <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter email" />
+              </FormControl>
+              <Grid templateColumns="repeat(2, 1fr)" gap={4}>
+                <GridItem>
+                  <FormControl id="gender" isRequired>
+                    <FormLabel>Gender</FormLabel>
+                    <Select value={gender} onChange={(e) => setGender(e.target.value)} placeholder="Select gender">
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                    </Select>
+                  </FormControl>
+                </GridItem>
+                <GridItem>
+                  <FormControl id="status" isRequired>
+                    <FormLabel>Status</FormLabel>
+                    <Select value={status} onChange={(e) => setStatus(e.target.value)} placeholder="Select status">
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </Select>
+                  </FormControl>
+                </GridItem>
+              </Grid>
+              <Button
+                colorScheme="teal"
+                onClick={createUser}
+                leftIcon={<FaPlus />}
+                mt={4}
+                isLoading={isCreatingUser} // Add isLoading prop
+              >
+                Create User
+              </Button>
+            </Box>
+          </TabPanel>
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Discover and deploy boilerplate example Next.js&nbsp;projects.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50 text-balance`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+        </TabPanels>
+      </Tabs>
+    </Box >
   );
-}
+};
+
+export default Home;
+
